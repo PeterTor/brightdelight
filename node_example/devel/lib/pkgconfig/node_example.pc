@@ -1,0 +1,8 @@
+prefix=/home/megatron/node_example/devel
+
+Name: node_example
+Description: Description of node_example
+Version: 0.0.1
+Cflags: -I/home/megatron/node_example/devel/include
+Libs: -L/home/megatron/node_example/devel/lib 
+Requires: dynamic_reconfigure message_runtime roscpp std_msgs
