@@ -31,7 +31,11 @@ zRotate = 0.
 
 xTrans = 0.
 yTrans = 0.
+#def for stripe behaivior
+translate=20
+translateSpeed=0.3
 
+showCrossWalk=False
 
 def scenemodel():
     glRotate(90,0.,0.,1.)
@@ -67,8 +71,11 @@ def resetView():
     yTrans = 0.
     glutPostRedisplay()
 
-
+frame=0
+time=0
+timebase=0
 def display():
+    global frame,time,timebase
     # Clear frame buffer and depth buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     # Set up viewing transformation, looking down -Z axis
@@ -80,11 +87,53 @@ def display():
     gluPerspective(zoom, float(g_Width)/float(g_Height), g_nearPlane, g_farPlane)
     glMatrixMode(GL_MODELVIEW)
     # Render the scene
-    polarView()
-    scenemodel()
+    #polarView()
+    #scenemodel()
+    if(showCrossWalk==False):
+        displayRoad()
+    else:
+        displaycrosswalk()
+    frame+=1
+    time=glutGet(GLUT_ELAPSED_TIME);
+    if time - timebase > 1000 :
+		print"FPS: ",frame*1000.0/(time-timebase)
+		timebase = time;
+		frame = 0;
+
     # Make sure changes appear onscreen
     glutSwapBuffers()
+def displaycrosswalk():
+    position=-10
+    for i in range (40):
+        glLoadIdentity()
+        glTranslatef(position, 0, -6.0)
+        glBegin(GL_QUADS)
+        glVertex3f(-0.5, 4.0, 0.0)
+        glVertex3f(0.5, 4.0, 0.0)
+        glVertex3f(0.5, -4.0, 0.0)
+        glVertex3f(-0.5, -4.0, 0.0)
+        glEnd();
+        position +=1.8
+def displayRoad():
+    global translate,translateSpeed
+    position=translate
+    for i in range(40):
+        makeStripe(position)
+	#print "stripe %s." % i
+ 	position+=8
+    translate=translate-translateSpeed
+    if translate <-200:
+        translate=0
 
+def makeStripe(translate):
+    glLoadIdentity()
+    glTranslatef(0, translate-5, -6.0)
+    glBegin(GL_QUADS)
+    glVertex3f(-0.5, 2.0, 0.0)
+    glVertex3f(0.5, 2.0, 0.0)
+    glVertex3f(0.5, -2.0, 0.0)
+    glVertex3f(-0.5, -2.0, 0.0)
+    glEnd();
 
 def reshape(width, height):
     global g_Width, g_Height
@@ -100,7 +149,7 @@ def polarView():
     glRotatef( -xRotate, 1.0, 0.0, 0.0)
     glRotatef( -yRotate, .0, 1.0, 0.0)
 
-
+## keboard mouse and motion are for debugging purposes
 def keyboard(key, x, y):
     global zTr, yTr, xTr
     if(key=='r'): resetView()
@@ -163,22 +212,34 @@ def initGL(width, height):
 
     glMatrixMode(GL_MODELVIEW)
 
-
+##
+## THREADS FOR SUBSCRIBER AND OPENGL
+##
 class CommandoSubscriber(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = True
     def run(self):
         while self.running and not rospy.is_shutdown():
-            rospy.Subscriber('cmd_vel', Twist, self.cmd_vel_cb)
+            rospy.Subscriber('Speed', Twist, self.SpeedChanger)
+            rospy.Subscriber('ShowCrossWalk', Twist, self.ShowCrossWalk)
+            rospy.Subscriber('ShowStripes', Twist, self.ShowStripes)
     	    #rospy.Subscriber('start', Twist, self.start)
             rospy.spin()
-    def cmd_vel_cb(self,msg):
-        global zoom, xStart, yStart, xRotate, yRotate, zRotate, xTrans, yTrans
-        xRotate=msg.linear.x
-        yRotate=msg.linear.y
-        glutPostRedisplay()
-
+    def SpeedChanger(self,msg):
+	    global translateSpeed
+	    translateSpeed = msg.linear.x
+        #global zoom, xStart, yStart, xRotate, yRotate, zRotate, xTrans, yTrans
+        #xRotate=msg.linear.x
+        #yRotate=msg.linear.y
+        #glutPostRedisplay()
+    def ShowCrossWalk(self,msg):
+        global showCrossWalk
+        showCrossWalk=True
+    def ShowStripes(self,msg):
+        global showCrossWalk
+        showCrossWalk=False
+	
 class Visualizer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -193,7 +254,7 @@ class Visualizer(threading.Thread):
             glutInitWindowPosition(0, 0)
 
             # Initialize window so we can close it later.
-            window = glutCreateWindow("IMU visualization")
+            window = glutCreateWindow("Display Projection")
 
             # Register the drawing function with glut.
             glutDisplayFunc(display)
@@ -214,35 +275,11 @@ class Visualizer(threading.Thread):
             glutMainLoop()
 
 
-class BaseController:
-    def __init__(self):
-	self.x=0
-	self.x=0
-
-    def start(self,msg):
-        glutInit()
-        glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB| GLUT_DEPTH)
-        glutInitWindowSize (g_Width,g_Height)
-        glutInitWindowPosition (0 + 4, g_Height / 4)
-        glutCreateWindow ("Visualizzatore_2.0")
-        # Initialize OpenGL graphics state
-        init ()
-        # Register callbacks
-        glutReshapeFunc(reshape)
-        glutDisplayFunc(display)
-        glutMouseFunc(mouse)
-        glutMotionFunc(motion)
-        glutKeyboardFunc(keyboard)
-        # Turn the flow of control over to GLUT
-        glutMainLoop()
-
 
 
 def main():
     rospy.init_node('Controller')
 
-    #base_controller = BaseController()
-    #rospy.spin()
 
     try:
         cmd = CommandoSubscriber()
