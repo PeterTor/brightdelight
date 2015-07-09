@@ -3,7 +3,6 @@ import rospy
 
 from geometry_msgs.msg import Twist
 import threading
-import math
 from threading import Timer, Thread
 # OpenGL
 try:
@@ -15,7 +14,7 @@ except:
     rospy.logerr("[Vis] PyOpenGL not installed properly. Exiting...")
     exit(1)
 
-g_fViewDistance = 2.5
+g_fViewDistance = 9.
 g_Width = 600
 g_Height = 600
 
@@ -37,6 +36,10 @@ translate=20
 translateSpeed=0.3
 
 showCrossWalk=False
+
+def scenemodel():
+    glRotate(90,0.,0.,1.)
+    glutSolidTeapot(1.)
 
 
 #--------
@@ -71,21 +74,18 @@ def resetView():
 frame=0
 time=0
 timebase=0
-eyeX=0
-eyeY=0
-centerX=0
-centerY=0
-centerZ=0
 def display():
-    global frame,time,timebase,eyeX,eyeY,centerX,centerY,centerZ
+    global frame,time,timebase
     # Clear frame buffer and depth buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     # Set up viewing transformation, looking down -Z axis
-    #glMatrixMode(GL_PROJECTION)
-    #glLoadIdentity()
-    #gluLookAt(eyeX, eyeY, -g_fViewDistance, 0, 0, 0, -.1, 0, 0)   #-.1,0,0
+    glLoadIdentity()
+    gluLookAt(0, 0, -g_fViewDistance, 0, 0, 0, -.1, 0, 0)   #-.1,0,0
     # Set perspective (also zoom)
-    #glMatrixMode(GL_MODELVIEW)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(zoom, float(g_Width)/float(g_Height), g_nearPlane, g_farPlane)
+    glMatrixMode(GL_MODELVIEW)
     # Render the scene
     #polarView()
     #scenemodel()
@@ -96,121 +96,44 @@ def display():
     frame+=1
     time=glutGet(GLUT_ELAPSED_TIME);
     if time - timebase > 1000 :
-		#print"FPS: ",frame*1000.0/(time-timebase)
-		print"km/h: ",((frame*1000.0/(time-timebase))*translateSpeed)*3.6
+		print"FPS: ",frame*1000.0/(time-timebase)
 		timebase = time;
 		frame = 0;
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    gluPerspective(zoom, float(g_Width)/float(g_Height), g_nearPlane, g_farPlane)
-    gluLookAt(eyeX, eyeY, -g_fViewDistance, centerX, centerY, centerZ, 0, 1, 0)   #-.1,0,0
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
+
+    # Make sure changes appear onscreen
     glutSwapBuffers()
-crosswalkrotation=0
-step =0
-counter=0
-
 def displaycrosswalk():
-    global crosswalkrotation,step,counter
-    position=-8
-    crosswalkrotation-=20
-    if crosswalkrotation <-180:
-	counter+=1
-	crosswalkrotation=0
-    if counter>16:
-	counter=0
-
-    for i in range (16):
+    position=-10
+    for i in range (40):
         glLoadIdentity()
-	glTranslatef(position, 0, 0.0)
-	if i==counter:
-		glRotated(crosswalkrotation,0,1,0)
-	
+        glTranslatef(position, 0, -6.0)
         glBegin(GL_QUADS)
-	glColor3d(255,255,255)
-        glVertex3f(-0.25, 1.5, 0.0)
-        glVertex3f(0.25, 1.5, 0.0)
-        glVertex3f(0.25, -1.5, 0.0)
-        glVertex3f(-0.25, -1.5, 0.0)
+        glVertex3f(-0.5, 4.0, 0.0)
+        glVertex3f(0.5, 4.0, 0.0)
+        glVertex3f(0.5, -4.0, 0.0)
+        glVertex3f(-0.5, -4.0, 0.0)
         glEnd();
-        
-        position +=1.0
-def displaycrosswalkShadowWave():
-    global crosswalkrotation,step,counter
-    position=-8
-    crosswalkrotation-=20
-    if crosswalkrotation <-180:
-	counter+=1
-	crosswalkrotation=0
-    if counter>16:
-	counter=0
-
-    for i in range (16):
-	if i!=counter:
-        	glLoadIdentity()
-		glTranslatef(position, 0, 0.0)
-	
-	        glBegin(GL_QUADS)
-		glColor3d(255,255,255)
-	        glVertex3f(-0.25, 1.5, 0.0)
-	        glVertex3f(0.25, 1.5, 0.0)
-	        glVertex3f(0.25, -1.5, 0.0)
-       		glVertex3f(-0.25, -1.5, 0.0)
-        	glEnd();
-        
-        position +=1.0
-
-
-
+        position +=1.8
 def displayRoad():
     global translate,translateSpeed
     position=translate
     for i in range(40):
         makeStripe(position)
 	#print "stripe %s." % i
- 	position+=9
+ 	position+=8
     translate=translate-translateSpeed
     if translate <-200:
         translate=0
 
-#groesse von verkersstreifen: http://www.dsgs.de/uploads/archiv/gesetze/leitfaden_fahrbahnmarkierung_dvr__dsgs.pdf seite 29
 def makeStripe(translate):
-    #mittelstreifen
     glLoadIdentity()
-    glTranslatef(1.90, translate-5, 0.0)
+    glTranslatef(0, translate, 0)
     glBegin(GL_QUADS)
-    glColor3d(255,255,255)
-    glVertex3f(-0.15, 1.5, 0.0)
-    glVertex3f(0.15, 1.5, 0.0)
-    glVertex3f(0.15, -1.5, 0.0)
-    glVertex3f(-0.15, -1.5, 0.0)
+    glVertex3f(-0.5, 2.0, 0.0)
+    glVertex3f(0.5, 2.0, 0.0)
+    glVertex3f(0.5, -2.0, 0.0)
+    glVertex3f(-0.5, -2.0, 0.0)
     glEnd();
-    
-    #seitenstreifen rechts
-    glLoadIdentity()
-    glTranslatef(-1.90, 0, 0.0)
-    
-    glBegin(GL_QUADS)
-    glColor3d(255,0,0)
-    glVertex3f(-0.15, 200.5, 0.0)
-    glVertex3f(0.15, 200.5, 0.0)
-    glVertex3f(0.15, -100.5, 0.0)
-    glVertex3f(-0.15, -100.5, 0.0)
-    glEnd();
-    
-    #seitenstreifen links
-    glLoadIdentity()
-    glTranslatef(4.75, 0, 0.0)
-    
-    glBegin(GL_QUADS)
-    glColor3d(255,0,0)
-    glVertex3f(-0.15, 200.5, 0.0)
-    glVertex3f(0.15, 200.5, 0.0)
-    glVertex3f(0.15, -100.5, 0.0)
-    glVertex3f(-0.15, -100.5, 0.0)
-    glEnd();
-    
 
 def reshape(width, height):
     global g_Width, g_Height
@@ -225,6 +148,51 @@ def polarView():
     glRotatef( -zRotate, 0.0, 0.0, 1.0)
     glRotatef( -xRotate, 1.0, 0.0, 0.0)
     glRotatef( -yRotate, .0, 1.0, 0.0)
+
+## keboard mouse and motion are for debugging purposes
+def keyboard(key, x, y):
+    global zTr, yTr, xTr
+    if(key=='r'): resetView()
+    if(key=='q'): exit(0)
+    glutPostRedisplay()
+
+
+def mouse(button, state, x, y):
+    global action, xStart, yStart
+    if (button==GLUT_LEFT_BUTTON):
+        if (glutGetModifiers() == GLUT_ACTIVE_SHIFT):
+            action = "MOVE_EYE_2"
+        else:
+            action = "MOVE_EYE"
+    elif (button==GLUT_MIDDLE_BUTTON):
+        action = "TRANS"
+    elif (button==GLUT_RIGHT_BUTTON):
+        action = "ZOOM"
+    xStart = x
+    yStart = y
+
+
+def motion(x, y):
+    global zoom, xStart, yStart, xRotate, yRotate, zRotate, xTrans, yTrans
+    if (action=="MOVE_EYE"):
+        xRotate += x - xStart
+        yRotate -= y - yStart
+    elif (action=="MOVE_EYE_2"):
+        zRotate += y - yStart
+    elif (action=="TRANS"):
+        xTrans += x - xStart
+        yTrans += y - yStart
+    elif (action=="ZOOM"):
+        zoom -= y - yStart
+        if zoom > 150.:
+            zoom = 150.
+        elif zoom < 1.1:
+            zoom = 1.1
+    else:
+        print("unknown action\n", action)
+    xStart = x
+    yStart = y
+    glutPostRedisplay()
 
 def initGL(width, height):
     global quadratic
@@ -243,19 +211,6 @@ def initGL(width, height):
     gluPerspective(45.0, float(width)/float(height), 0.1, 100.0)
 
     glMatrixMode(GL_MODELVIEW)
-def keypressed(key,x,y):
-    global eyeX,eyeY
-    if key=="w":
-        eyeY=eyeY+1
-    if key=="s":
-        eyeY=eyeY-1
-    if key=="a":
-        eyeX=eyeX+1
-    if key=="d":
-        eyeX=eyeX-1
-    print eyeY
-    print math.atan2(g_fViewDistance,eyeY)*180/3.1415
-
 
 ##
 ## THREADS FOR SUBSCRIBER AND OPENGL
@@ -311,11 +266,11 @@ class Visualizer(threading.Thread):
             glutReshapeFunc(reshape)
 
             # Register the function called when key is pressed.
-            glutKeyboardFunc(keypressed)
+            #glutKeyboardFunc(keyPressed)
 
             # Initialize window.
             initGL(640, 480)
-
+	    glutFullScreen( )
             # Start event processing engine.
             glutMainLoop()
 
