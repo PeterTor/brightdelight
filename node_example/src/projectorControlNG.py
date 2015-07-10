@@ -15,7 +15,7 @@ except:
     rospy.logerr("[Vis] PyOpenGL not installed properly. Exiting...")
     exit(1)
 
-g_fViewDistance = 2.5
+g_fViewDistance = 2.14
 g_Width = 600
 g_Height = 600
 
@@ -72,7 +72,7 @@ frame=0
 time=0
 timebase=0
 eyeX=0
-eyeY=0
+eyeY=-3.3
 centerX=0
 centerY=0
 centerZ=0
@@ -253,6 +253,9 @@ def keypressed(key,x,y):
         eyeX=eyeX+1
     if key=="d":
         eyeX=eyeX-1
+    if key=="p":
+	sys.exit(0)
+
     print eyeY
     print math.atan2(g_fViewDistance,eyeY)*180/3.1415
 
@@ -297,7 +300,7 @@ class Visualizer(threading.Thread):
             glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
             glutInitWindowSize(640, 480)
             glutInitWindowPosition(0, 0)
-
+	    
             # Initialize window so we can close it later.
             window = glutCreateWindow("Display Projection")
 
@@ -315,7 +318,7 @@ class Visualizer(threading.Thread):
 
             # Initialize window.
             initGL(640, 480)
-
+	    #glutFullScreen()
             # Start event processing engine.
             glutMainLoop()
 
@@ -331,7 +334,7 @@ def main():
         cmd.start()
         vis = Visualizer()
         vis.start()
-        raw_input("Hit <enter> to quit.")
+        raw_input("Hit <p> to quit.")
 
         # Stop the loops.
         cmd.running = False
